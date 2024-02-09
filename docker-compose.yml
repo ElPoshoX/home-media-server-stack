@@ -1,0 +1,261 @@
+---
+version: "3.8"
+services:
+  samba:
+    image: dperson/samba:latest # No generan versiones solo latest
+    container_name: $SAMBA_HOSTNAME
+    hostname: $SAMBA_HOSTNAME
+    command: '-u "$SAMBA_USER;$SAMBA_PASS" -s "drive;/drive;yes;no" -s "media;/media;yes;no" -s "downloads;/downloads;yes;no"'
+    stdin_open: true
+    tty: true
+    environment:
+      - TZ=$TZ
+    ports:
+      - 139:139
+      - 445:445
+    dns:
+      - $NETWORK_DNS
+    restart: always
+    volumes:
+      - $EXT_DRIVE_CONTENT/media:/media
+      - $EXT_DRIVE_STORAGE/torrents:/downloads
+      - $EXT_DRIVE:/drive
+    networks:
+      home-server:
+        ipv4_address: $SAMBA_NETWORK_IP
+
+  # Personalmente percibi mal performance si no uso network_mode: host
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: $PLEX_HOSTNAME
+    hostname: $PLEX_HOSTNAME
+    expose:
+      - 32400
+      - 33400
+    # Se tienen que remover si NO usamos network_mode: "host"
+    #ports:
+     #- 32400:32400
+     #- 33400:33400
+    environment:
+      - TZ=$TZ
+      - PUID=1000
+      - PGID=1000
+      - PLEX_CLAIM=$PLEX_CLAIM
+      - VERSION=$PLEX_VERSION_TYPE
+    dns:
+      - $NETWORK_DNS
+    labels:
+      caddy: plex.local
+      caddy.reverse_proxy: "{{upstreams 80}}"
+    volumes:
+      - $EXT_DRIVE_STORAGE/plex-server:/config
+      - $EXT_DRIVE_CONTENT/media:/content/media
+      - $EXT_DRIVE_STORAGE/tmp:/tmp
+      - $EXT_DRIVE_STORAGE/transcode:/transcode
+    restart: unless-stopped
+    network_mode: "host"
+
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+      WEBUI_PORT: $QBITTORRENT_PORT
+    volumes:
+      - $EXT_DRIVE_STORAGE/qbittorrent/config:/config
+      - $EXT_DRIVE_CONTENT/torrents:/content/torrents
+    ports:
+      - 8080:8080
+      - 6881:6881
+      - 6881:6881/udp
+    labels:
+      caddy: qbittorrent.local
+      caddy.reverse_proxy: "{{upstreams 8080}}"
+    dns:
+      - $NETWORK_DNS
+    restart: unless-stopped
+    networks:
+      home-server:
+        ipv4_address: $QBITTORRENT_NETWORK_IP
+
+  sonarr:
+    container_name: sonarr
+    hostname: sonarr
+    image: "linuxserver/sonarr:latest"
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - $EXT_DRIVE_STORAGE/sonarr/config:/config
+      - $EXT_DRIVE_CONTENT:/content
+    labels:
+      caddy: sonarr.local
+      caddy.reverse_proxy: "{{upstreams 8989}}"
+    dns:
+      - $NETWORK_DNS
+    ports:
+      - 8989:8989
+    networks:
+      home-server:
+        ipv4_address: $SONARR_NETWORK_IP
+
+  radarr:
+    container_name: radarr
+    image: "linuxserver/radarr:latest"
+    restart: unless-stopped
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - $EXT_DRIVE_STORAGE/radarr/config:/config
+      - $EXT_DRIVE_CONTENT:/content
+    labels:
+      caddy: radarr.local
+      caddy.reverse_proxy: "{{upstreams 7878}}"
+    dns:
+      - $NETWORK_DNS
+    ports:
+      - 7878:7878
+    networks:
+      home-server:
+        ipv4_address: $RADARR_NETWORK_IP
+      
+  readarr:
+    image: lscr.io/linuxserver/readarr:develop
+    container_name: readarr
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - $EXT_DRIVE_STORAGE/readarr/config:/config
+      - $EXT_DRIVE_CONTENT:/content
+    labels:
+      caddy: readarr.local
+      caddy.reverse_proxy: "{{upstreams 8787}}"
+    dns:
+      - $NETWORK_DNS
+    ports:
+      - 8787:8787
+    restart: unless-stopped
+    networks:
+      home-server:
+        ipv4_address: $READARR_NETWORK_IP
+
+  bazarr:
+    container_name: bazarr
+    image: 'linuxserver/bazarr:latest'
+    restart: unless-stopped
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - TZ=$TZ
+      - UMASK_SET=022
+    volumes:
+      - $EXT_DRIVE_STORAGE/bazarr/config:/config # config files
+      - $EXT_DRIVE_CONTENT/media:/content/media
+    ports:
+      - 6767:6767
+    labels:
+      caddy: bazarr.local
+      caddy.reverse_proxy: "{{upstreams 6767}}"
+    dns:
+      - $NETWORK_DNS
+    networks:
+      home-server:
+        ipv4_address: $BAZARR_NETWORK_IP
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    volumes:
+      - $EXT_DRIVE_STORAGE/prowlarr/config:/config
+    restart: unless-stopped
+    labels:
+      caddy: prowlarr.local
+      caddy.reverse_proxy: "{{upstreams 9696}}"
+    dns:
+      - $NETWORK_DNS
+    ports:
+      - 9696:9696
+    networks:
+      home-server:
+        ipv4_address: $PROWLARR_NETWORK_IP
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      LOG_LEVEL: info
+      LOG_HTML: false
+      CAPTCHA_SOLVER: none
+      TZ: $TZ
+    labels:
+      caddy: flaresolverr.local
+      caddy.reverse_proxy: "{{upstreams 8191}}"
+    ports:
+      - 8191:8191
+    restart: unless-stopped
+    networks:
+      home-server:
+        ipv4_address: $FLARESOLVERR_NETWORK_IP
+
+  overseerr:
+    image: sctx/overseerr:latest
+    container_name: overseerr
+    environment:
+      LOG_LEVEL: info
+      TZ: $TZ
+    ports:
+      - 5055:5055
+    labels:
+      caddy: overseerr.local
+      caddy.reverse_proxy: "{{upstreams 5055}}"
+    dns:
+      - $NETWORK_DNS
+    volumes:
+      - $EXT_DRIVE_STORAGE/overseerr/config:/app/config
+    restart: unless-stopped
+    networks:
+      home-server:
+        ipv4_address: $OVERSEERR_NETWORK_IP
+
+  autobrr:
+    container_name: autobrr
+    image: ghcr.io/autobrr/autobrr:latest
+    restart: unless-stopped
+    environment:
+      TZ: $TZ
+    user: 1000:1000
+    labels:
+      caddy: autobrr.local
+      caddy.reverse_proxy: "{{upstreams 7474}}"
+    dns:
+      - $NETWORK_DNS
+    volumes:
+       - $EXT_DRIVE_STORAGE/autobrr/config:/config
+    ports:
+      - 7474:7474
+    networks:
+      home-server:
+        ipv4_address: $AUTOBRR_NETWORK_IP
+
+    
+
+networks:
+  home-server:
+    name: $NETWORK_NAME
+    external: true
