@@ -21,7 +21,7 @@ services:
       - $EXT_DRIVE_STORAGE/torrents:/downloads
       - $EXT_DRIVE:/drive
     networks:
-      - home-server
+      - $NETWORK_NAME
 
   # Personalmente percibi mal performance si no uso network_mode: host
   plex:
@@ -77,7 +77,7 @@ services:
       - $NETWORK_DNS
     restart: unless-stopped
     networks:
-      - home-server
+      - $NETWORK_NAME
 
   sonarr:
     container_name: sonarr
@@ -100,7 +100,7 @@ services:
     ports:
       - 8989:8989
     networks:
-      - home-server
+      - $NETWORK_NAME
 
   radarr:
     container_name: radarr
@@ -122,7 +122,7 @@ services:
     ports:
       - 7878:7878
     networks:
-      - home-server
+      - $NETWORK_NAME
       
   readarr:
     image: lscr.io/linuxserver/readarr:develop
@@ -144,7 +144,7 @@ services:
       - 8787:8787
     restart: unless-stopped
     networks:
-      - home-server
+      - $NETWORK_NAME
 
   bazarr:
     container_name: bazarr
@@ -166,7 +166,7 @@ services:
     dns:
       - $NETWORK_DNS
     networks:
-      - home-server
+      - $NETWORK_NAME
 
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
@@ -186,7 +186,7 @@ services:
     ports:
       - 9696:9696
     networks:
-      - home-server
+      - $NETWORK_NAME
 
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
@@ -203,7 +203,7 @@ services:
       - 8191:8191
     restart: unless-stopped
     networks:
-      - home-server
+      - $NETWORK_NAME
 
   overseerr:
     image: sctx/overseerr:latest
@@ -222,7 +222,7 @@ services:
       - $EXT_DRIVE_STORAGE/overseerr/config:/app/config
     restart: unless-stopped
     networks:
-      - home-server
+      - $NETWORK_NAME
 
 networks:
   home-server:
