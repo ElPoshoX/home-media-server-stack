@@ -124,27 +124,6 @@ services:
     networks:
       - $NETWORK_NAME
       
-  readarr:
-    image: lscr.io/linuxserver/readarr:develop
-    container_name: readarr
-    environment:
-      PUID: $PUID
-      PGID: $PGID
-      TZ: $TZ
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - $EXT_DRIVE_STORAGE/readarr/config:/config
-      - $EXT_DRIVE_CONTENT:/content
-    labels:
-      caddy: readarr.local
-      caddy.reverse_proxy: "{{upstreams 8787}}"
-    dns:
-      - $NETWORK_DNS
-    ports:
-      - 8787:8787
-    restart: unless-stopped
-    networks:
-      - $NETWORK_NAME
 
   bazarr:
     container_name: bazarr
